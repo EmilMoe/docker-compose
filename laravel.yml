@@ -1,0 +1,59 @@
+version: "3.5"
+
+services:
+
+  mysql:
+    container_name: ${NAME}_database
+    image: mysql:latest
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    networks:
+      - backend
+    volumes:
+      - /home/${USER}/dockerdata/${NAME}/mysql:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: laravel
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: ${NAME}_phpmyadmin
+    depends_on:
+      - mysql
+    networks:
+      - backend
+      - pma
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 0
+      VIRTUAL_HOST: ${DOMAINS}
+      LETSENCRYPT_HOST: ${DOMAINS}
+    restart: always
+
+  apache:
+    container_name: ${NAME}_web
+    image: emilmoe/laravel:latest
+    depends_on:
+      - mysql
+    restart: always
+    volumes:
+      - /home/${USER}/dockerdata/${NAME}/html:/var/www/html
+    networks:
+      - backend
+      - proxy
+    environment:
+      VIRTUAL_HOST: ${DOMAINS}
+      LETSENCRYPT_HOST: ${DOMAINS}
+
+#  backup:
+
+networks:
+  backend:
+    driver: bridge
+  proxy:
+    external: true
+  pma:
+    external: true
